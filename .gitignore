@@ -70,3 +70,17 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+
+
+# Matlab
+*.asv
+*.m~
+
+# Directory
+/LCFS_ICCV2013/results/
+/LCFS_ICCV2013/voc data/
+/MML_ICCV2013/SPAMS/
+/MML_ICCV2013/SPAMS_2.5/
+/MML_ICCV2013/voc_data/
+/MML_ICCV2013/init.mat
+/MML_ICCV2013/Data/CUFS_CUHK.mat
