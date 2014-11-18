@@ -4,19 +4,24 @@
 % Limu, Kyushu University, Japan
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function demoCDCDL_nuswide
+function demoCDCDL_mirflickr
     clear;
-    clc;
+%     clc;
     
     %% load data
     addpath(genpath('SPAMS_2.5'));
-    addpath(genpath('../config_nuswide'))
+    addpath(genpath('../config_mirflickr'))
+    
+    if ~exist('./model/', 'dir')
+        mkdir('./model/');
+    end
+    MODEL_DIR = './model/mirflickr';
     
     load params;
     
     % load nuswide data
     % first load V (visual feature matrix, nxd), C (concept matrix, nxc)
-    [VTr, VTe, CTr, CTe, TTr, TTe] = load_multiple_feature_nuswide('config_file_nuswide_CCA');
+    [VTr, VTe, CTr, CTe, TTr, TTe] = load_multiple_feature_mirflickr('config_file_mirflickr');
     
     % trainspose the features with column-wise dxn
     X_a = VTr';
@@ -39,7 +44,7 @@ function demoCDCDL_nuswide
     [num, c] = size(train_Y);
     
     %% Parameters setting
-    c = 80;
+    c = 300;
     par.mu = par.mu*1;
     par.K 	= c;
     param.K = c;
@@ -56,6 +61,10 @@ function demoCDCDL_nuswide
     param.approx=0;
     param.verbose       = true;
     param.iter          = 100;
+    
+    fprintf('Coupled dictionary learning with size c = %d \n', c);
+    file_model = sprintf('mirflickr_model_%d.mat', c);
+    
     %% Intialize D,A, and W(U)
     D = mexTrainDL([X_a;X_b], param); % train dictionaries Dh, Dl from training data X_a, X_b
     Dh = D(1:size(X_a,1),:); 
@@ -65,15 +74,20 @@ function demoCDCDL_nuswide
     Alphah = mexLasso([X_a;X_b], D, param);
     Alphal = Alphah;
     clear D;
+    
     % Iteratively solve D,A, and W (U)
     
     
         par.nu = 0.001;
         par.mu = 0.0001;
+        par.epsilon = 0.001;
         
+        tic;
         [Alphah, Alphal, XH_t, XL_t, Dh, Dl, Wh, Wl, Uh, Ul, f] = coupled_DL_recoupled(Alphah, Alphal, X_a, X_b, Dh, Dl, Wh, Wl, par);
         clear XH_t XL_t;
-
+        toc;
+        
+        save(fullfile(MODEL_DIR, file_model), 'Dh', 'Dl', 'Wh', 'Wl', 'Uh', 'Ul');
         %% now use the sparse representations for new modal learning
         lambda_1 = 0.1;
         lambda_2 = 0.001;
@@ -103,13 +117,7 @@ function demoCDCDL_nuswide
         resultsImage = evaluatePR(test_Y', projected_Y_b', 5, 'image');
         fprintf('... For image measure from text modality: \n\t P %f, R %f, N+ %d \n', resultsImage.prec, resultsImage.rec, resultsImage.retrieved);
         
-       %% evaluate with MAP measure
-%         map1 = calculateMAP( projected_Y_a, projected_Y_b, test_Y );
-%         str = sprintf( 'The MAP of image as query is %f%%\n', map1 *100 );
-%         disp(str);
-% 
-%         map2 = calculateMAP( projected_Y_b, projected_Y_a, test_Y );
-%         str = sprintf( 'The MAP of text as query is %f%%\n', map2 *100 );
-%         disp(str);  
+        save(fullfile(MODEL_DIR, file_model), 'W_a', 'W_b', 'projected_Y_a', 'projected_Y_b', 'test_Y', '-append');
+        fprintf('Finished testing model for c = %d, saved model results \n', c);
     
 end

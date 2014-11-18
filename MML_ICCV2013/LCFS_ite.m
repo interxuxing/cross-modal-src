@@ -5,7 +5,7 @@
 %Input
 %  Data_a     n*dim_a data matrix from one space (e.g. the image space)
 %  Data_b     n*dim_b data matrix from another space (e.g. the text space)
-%  Label      n*1 label vector
+%  Label      n*c label matrix
 %  lambda_1   regularization parameter of L2,1 norm
 %  lambda_2   regularization parameter of trace norm
 %  ite        the number of iteration 
@@ -18,12 +18,12 @@
 function [ W_a, W_b ] = LCFS_ite( Data_a, Data_b, Label, lambda_1, lambda_2, ite  )
     tic;
     
-    Y = SY2MY( Label );
-    Y(find(Y==-1))=0;
-    
+%     Y = SY2MY( Label );
+%     Y(find(Y==-1))=0;
+    Y = Label; % here Label already is nxc matrix, not nx1 label vector
     [num, dim_a] = size( Data_a );
     [num, dim_b] = size( Data_b );
-    [num, c] = size( Y );
+    [num, c] = size( Label );
     
     % set initial U_a, U_b
     U_a = eye(dim_a, c);
@@ -57,7 +57,8 @@ function [ W_a, W_b ] = LCFS_ite( Data_a, Data_b, Label, lambda_1, lambda_2, ite
         
         ppb = U_b.*U_b;
         ppb = 1./( 2.*sqrt(sum(ppb,2)+0.0000001) );
-        disp(i);
+        %         disp(i);
+        fprintf('%d th iteration \n', i);
     end
     
     W_a = U_a;

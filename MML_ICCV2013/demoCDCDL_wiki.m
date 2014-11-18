@@ -4,48 +4,64 @@
 % Limu, Kyushu University, Japan
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function demoCDCDL2
+function demoCDCDL_wiki
     clear;
-%     clc;
+    clc;
     
-    %% load data
     addpath(genpath('SPAMS_2.5'));
+    dir_wiki_data = '/media/Data/dataset/data/wiki/wikipedia_dataset';
     
-    load params;
+    %% read the single labels for each document
+    fid = fopen(fullfile(dir_wiki_data, 'trainset_txt_img_cat.list'));
+    Content = textscan(fid, '%s\t%s\t%d\n');
+    fclose(fid);
+    Y_tr = double(Content{3}); % Y_tr is nx1
     
-    load('./voc_data/Train.mat');
-    load('./voc_data/Test.mat');
-    X_a = TrImage';
-    X_b = TrText';
-    
-    train_Y = SY2MY(trY)';
+    train_Y = SY2MY(Y_tr); % train_Y is n x c
     train_Y(find(train_Y == -1)) = 0;
     
-    Test_a = TeImage';
-    Test_b = TeText';
-    test_Y = teY;
-%     test_Y(find(test_Y == -1)) = 0;
     
-    %% training parameters
-    lambda_1 = 0.1;
-    lambda_2 = 0.001;
-    ite = 5;
+    fid = fopen(fullfile(dir_wiki_data, 'testset_txt_img_cat.list'));
+    Content = textscan(fid, '%s\t%s\t%d\n');
+    fclose(fid);
+    Y_te = double(Content{3});
     
+    test_Y = SY2MY(Y_te);
+    test_Y(find(test_Y == -1)) = 0;
     
+    %% load data
+   
+    load params;
+    
+    load(fullfile(dir_wiki_data, 'raw_features.mat'));
+    
+    X_a = I_tr'; % X_a should be dim x nsamples
+    X_b = T_tr';
+    
+    Test_a = I_te';
+    Test_b = T_te';     
+    
+    % get dimension size for visual, textual
     [dim_a, num] = size( X_a );
     [dim_b, num] = size( X_b );
     [c, num] = size(train_Y);
     
     %% Parameters setting
-    c = 100;
+    C = [210:10:300];
+    NU = [0.0001, 0.001, 0.01, 0.1, 1, 10];
+    MU = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10];
+    
+    %% loop to change the dictionary size c, for evaluation
+%     c = 50;
+    
+for c = C
+    fprintf('Coupled dictionary learning with size c = %d \n', c);
+    
     par.mu = par.mu*1;
     par.K 	= c;
     param.K = c;
     par.L	= c;
-
     
-    NU = [0.0001, 0.001, 0.01, 0.1, 1, 10];
-    MU = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10];
     %% param is for SPMAS toolbox
     param.L = c;
     param.lambda        = par.lambda1; % not more than 20 non-zeros coefficients
@@ -54,8 +70,10 @@ function demoCDCDL2
     param.approx=0;
     param.verbose       = false;
     param.iter          = 100;
+    
+    
     %% Intialize D,A, and W(U)
-    D = mexTrainDL([X_a;X_b], param); % train dictionaries Dh, Dl from training data X_a, X_b
+    D = mexTrainDL([X_a;X_b], param); % �����ֵ�Dh, Dlһ��ѵ��
     Dh = D(1:size(X_a,1),:); 
     Dl = D(size(X_a,1)+1:end,:);
     Wl = eye(size(Dh, 2));
@@ -63,40 +81,43 @@ function demoCDCDL2
     Alphah = mexLasso([X_a;X_b], D, param);
     Alphal = Alphah;
     clear D;
+    
     % Iteratively solve D,A, and W (U)
     
     
         par.nu = 0.001;
         par.mu = 0.0001;
+        par.epsilon = 0.005;
         
         [Alphah, Alphal, XH_t, XL_t, Dh, Dl, Wh, Wl, Uh, Ul, f] = coupled_DL_recoupled(Alphah, Alphal, X_a, X_b, Dh, Dl, Wh, Wl, par);
         clear XH_t XL_t;
 
         %% now use the sparse representations for new modal learning
+        %% training parameters for LCFS method
         lambda_1 = 0.1;
         lambda_2 = 0.001;
         ite = 5;
     
-        [W_a, W_b] = LCFS_ite( Alphah', Alphal', trY, lambda_1, lambda_2, ite);
+        [W_a, W_b] = LCFS_ite( Alphah', Alphal', train_Y, lambda_1, lambda_2, ite);
         
-%         Ph = Uh * Alphah;
-%         Pl = Ul * Alphal;
-%         [W_a, W_b] = LCFS_ite( Ph', Pl', trY, lambda_1, lambda_2, ite);
-        
+       
         %% test
-        % first project the testing samples on the common feature space
+        %% first project the testing samples on the common feature space with sparse representation
         Alphah = full(mexLasso(Test_a, Dh, param));
         Alphal = full(mexLasso(Test_b, Dl, param));
+        %% then project the sparse representation to annotation space
         projected_Y_a = Alphah' * W_a;
         projected_Y_b = Alphal' * W_b;
 
         
-        map1 = calculateMAP( projected_Y_a, projected_Y_b, test_Y );
+        map1 = calculateMAP( projected_Y_a, projected_Y_b, Y_te );
         str = sprintf( 'The MAP of image as query is %f%%\n', map1 *100 );
         disp(str);
 
-        map2 = calculateMAP( projected_Y_b, projected_Y_a, test_Y );
+        map2 = calculateMAP( projected_Y_b, projected_Y_a, Y_te );
         str = sprintf( 'The MAP of text as query is %f%%\n', map2 *100 );
         disp(str);  
-    
+end
+
+fprintf('finished! \n');
 end

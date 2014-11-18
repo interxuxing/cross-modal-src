@@ -10,7 +10,7 @@ eval(config_file);
 featNames = {'BoW', 'CH', 'CM55', 'CORR', 'EDH', 'Gist', 'WT'};
 annoNames = {'Concepts81'};
 tagNames = {'Tags1k'};
-dataFolder = [IMAGE_ANNOTATION_DIR,'\'];
+dataFolder = [IMAGE_ANNOTATION_DIR,'/'];
 tic;
 
 %% 1st parse concepts (annotations)

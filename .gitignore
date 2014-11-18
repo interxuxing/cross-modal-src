@@ -36,7 +36,8 @@
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -75,8 +76,10 @@ $RECYCLE.BIN/
 # Matlab
 *.asv
 *.m~
+*.log
 
 # Directory
+.gitigore~
 /LCFS_ICCV2013/results/
 /LCFS_ICCV2013/voc data/
 /MML_ICCV2013/SPAMS/
@@ -84,3 +87,5 @@ $RECYCLE.BIN/
 /MML_ICCV2013/voc_data/
 /MML_ICCV2013/init.mat
 /MML_ICCV2013/Data/CUFS_CUHK.mat
+/MML_ICCV2013/model/
+/MML_ICCV2013/raw_features.mat
