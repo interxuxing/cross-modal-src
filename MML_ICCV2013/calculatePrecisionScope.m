@@ -25,7 +25,12 @@ function map = calculatePrecisionScope( queryset, targetset, test_Y )
     epsilon = 1e-3;
     for s = 1 : length(scales)
         AP = [];
+        
         scale = scales(s);
+        if num <= scale
+            scale = num;
+        end
+        
         for k = 1 : num
             ClassIndex = find(classIndex(k, :) == test_Y(k));
             reClassIndex = ClassIndex(ClassIndex <= scale);
